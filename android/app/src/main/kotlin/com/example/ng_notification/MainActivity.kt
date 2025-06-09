@@ -8,14 +8,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.ComponentName
 import android.os.Build
+import android.content.SharedPreferences
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "input_method_channel"
     private val NOTIF_PACKAGE = "com.example.ark_notif"
     private val NOTIF_SERVICE = "com.example.ark_notif.RingMonitoringService"
+    private val PREFS_NAME = "FlutterSharedPreferences"
+    private val PHORJP_KEY = "flutter.phorjp"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Handle incoming intent
+        handleIntent(intent)
 
         // Start the notification service when app launches
         startNotificationService()
@@ -29,6 +35,21 @@ class MainActivity: FlutterActivity() {
             } else {
                 result.notImplemented()
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        // Check if the intent has the phorjp extra
+        val phorjp = intent?.getStringExtra("phorjp")
+        if (phorjp != null) {
+            // Save to shared preferences
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().putString(PHORJP_KEY, phorjp).apply()
         }
     }
 
