@@ -9,6 +9,8 @@ import android.content.Intent
 import android.content.ComponentName
 import android.os.Build
 import android.content.SharedPreferences
+import android.net.Uri
+import android.provider.Settings
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "input_method_channel"
@@ -26,8 +28,10 @@ class MainActivity: FlutterActivity() {
         // Start the notification service when app launches
         startNotificationService()
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
-                call, result ->
+        // Check and prompt for unknown app sources permission
+        checkInstallUnknownAppsPermission()
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "showInputMethodPicker") {
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showInputMethodPicker()
@@ -44,10 +48,8 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        // Check if the intent has the phorjp extra
         val phorjp = intent?.getStringExtra("phorjp")
         if (phorjp != null) {
-            // Save to shared preferences
             val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().putString(PHORJP_KEY, phorjp).apply()
         }
@@ -66,8 +68,19 @@ class MainActivity: FlutterActivity() {
                 startService(intent)
             }
         } catch (e: Exception) {
-            // Handle exception if the service or app isn't installed
             e.printStackTrace()
+        }
+    }
+
+    private fun checkInstallUnknownAppsPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!packageManager.canRequestPackageInstalls()) {
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:$packageName")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                startActivity(intent)
+            }
         }
     }
 }
